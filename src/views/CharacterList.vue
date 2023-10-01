@@ -1,26 +1,33 @@
 <template>
   <div>
     <search-bar v-model="search" @updateSearch="updateSearch" />
-    <status-filter v-model="statusFilter" @updateStatusFilter="updateStatusFilter" />
+    <status-filter
+      v-model="statusFilter"
+      @updateStatusFilter="updateStatusFilter"
+    />
     <div class="character-list">
-      <character-card v-for="character in filteredCharacters" :key="character.id" :character="character" />
+      <character-card
+        v-for="character in filteredCharacters"
+        :key="character.id"
+        :character="character"
+      />
     </div>
     <div v-if="loading">Carregando...</div>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-import CharacterCard from '@/components/CharacterCard.vue';
-import SearchBar from '@/components/SearchBar.vue';
-import StatusFilter from '@/components/StatusFilter.vue';
+import axios from "axios";
+import CharacterCard from "@/components/CharacterCard.vue";
+import SearchBar from "@/components/SearchBar.vue";
+import StatusFilter from "@/components/StatusFilter.vue";
 
 export default {
   data() {
     return {
       characters: [],
-      search: '',
-      statusFilter: '',
+      search: "",
+      statusFilter: "",
       loading: false,
       info: {},
       page: 1,
@@ -32,83 +39,96 @@ export default {
     StatusFilter,
   },
   computed: {
-   filteredCharacters() {
-    return this.characters.filter((character) => {
-      const nameMatch = character.name.toLowerCase().includes(this.search.toLowerCase());
-      const statusMatch = !this.statusFilter || character.status === this.statusFilter;
-      return nameMatch && statusMatch;
-    });
-  },
+    filteredCharacters() {
+      return this.characters.filter((character) => {
+        const nameMatch = character.name
+          .toLowerCase()
+          .includes(this.search.toLowerCase());
+        const statusMatch =
+          !this.statusFilter || character.status === this.statusFilter;
+        return nameMatch && statusMatch;
+      });
+    },
   },
   methods: {
- async fetchCharacters() {
-  try {
-    this.loading = true;
-    const response = await axios.get('character', {
-      params: {
-        page: this.page,
-        name: this.search, 
-        status: this.statusFilter, 
-      },
-    });
+    async fetchCharacters() {
+      try {
+        if (this.page === 1) {
+          this.loading = true;
+        }
 
-    if (response.data.results.length === 0) {
-      this.loading = false;
-      return;
-    }
+        const response = await axios.get("character", {
+          params: {
+            page: this.page,
+            name: this.search,
+            status: this.statusFilter,
+          },
+        });
 
-    const newCharacters = response.data.results;
+        const newCharacters = response.data.results;
 
-    newCharacters.forEach((character) => {
-      if (!this.characters.some((existingCharacter) => existingCharacter.id === character.id)) {
-        this.characters.push(character);
+        newCharacters.forEach((character) => {
+          if (
+            !this.characters.some(
+              (existingCharacter) => existingCharacter.id === character.id
+            )
+          ) {
+            this.characters.push(character);
+          }
+        });
+
+        this.info = response.data.info;
+        if (this.info.next) {
+          this.page++;
+        } else {
+          this.page = 1;
+        }
+
+        this.loading = false;
+      } catch (error) {
+        console.error(error);
+        this.loading = false;
       }
-    });
-
-    this.page++;
-    this.loading = false;
-  } catch (error) {
-    console.error(error);
-    this.loading = false;
-  }
-},
-
-
+    },
 
     resetCharacters() {
       this.characters = [];
       this.page = 1;
       this.fetchCharacters();
     },
+
     handleScroll() {
       if (
         window.innerHeight + window.scrollY >= document.body.offsetHeight &&
-        this.info.next &&
         !this.loading
       ) {
-        this.page++;
         this.fetchCharacters();
       }
     },
+
     updateSearch(searchTerm) {
       this.search = searchTerm;
       this.resetCharacters();
     },
+
     updateStatusFilter(status) {
       this.statusFilter = status;
       this.resetCharacters();
     },
   },
+
   watch: {
-    search: 'resetCharacters',
-    statusFilter: 'resetCharacters',
+    search: "resetCharacters",
+    statusFilter: "resetCharacters",
   },
+
   mounted() {
     this.fetchCharacters();
-    window.addEventListener('scroll', this.handleScroll);
+    window.addEventListener("scroll", this.handleScroll);
   },
+
   beforeUnmount() {
-    window.removeEventListener('scroll', this.handleScroll);
+    window.removeEventListener("scroll", this.handleScroll);
   },
 };
 </script>
